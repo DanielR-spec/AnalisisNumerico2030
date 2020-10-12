@@ -1,0 +1,533 @@
+---
+title: "Análisis Numérico- Julian Builes, Daniel Reyes, Daniel Fierro, Santiago Bermudez"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  html_notebook: default
+---
+##Ejercicios   
+Los siguientes ejercicios estan relacionados con el tema de sistemas de ecuaciones lineales, los cuales se solucionan utilizando métodos númericos  
+Para la realización de los siguientes ejercicios instalar las librerias pracma, matrix y Rlinsolve
+
+```{r, echo=TRUE}
+library(pracma)
+library(Matrix)
+library(Rlinsolve)
+```
+
+
+### 1. 
+a. Revise las siguientes funciones con la matriz A, que puede decir acerca de su funcionamiento y explique como se utilizan para descomponer la matriz A.
+
+Solcion :
+
+Compilando y viendo el resultado de las funciones, eye, ones, zeros y matrix se pude entender que todos tienen una función básica en común, y es la de poder crear una matriz dependiendo del valor de numero de columnas dadas:
+
+  eye : se encarga de crear una matriz identidad de n x m.
+  
+  ones : Crea una  n x m de solo unos.
+  
+  Zeros : crea una matriz n x m solo con el valor de 0 en cada posicion, tambaien denominada     matriz nula.
+  
+  matrix: Dado un vector con valores y el número de filas se crea una matriz con los datos correspondientes, para el correcto funcionamiento el valor de la cantidad de filas que ser un submúltiplo o múltiplo del tamaño del vector dado.
+  
+Dentro de las funciones dadas, con el resultado de la multiplicación de la matriz A con la matriz identidad(función eye ) se puede determinar la diagonal de la matriz A. Con las otras dos funciones no se puede hace hacer una descomposición de sus partes, ya que si A se multiplican con la matriz de ceros el resultado va a ser una matriz de ceros y en el caso de la matriz de unos el resultado es la misma matriz A.
+
+b. Evalue la matriz de transición para el método $\textbf{SOR}$  y de $Jacobi$   
+
+**Solucion:**Para la realización de este punto se tomo como ayuda  las funciones dadas para obtener el valor de $A = D - L - U$, ya obtenidas las matrices necesarias, se procede a evaluar las matrices de transiciones, para el caso de jacovi se tiene que  $T =  D^{-1}(L+U)$ y para el método de sor se tiene que $T = (I - wD^{-1}L)[(1-w)I+wD^{-1}U]$, donde $w$ es un valor que esta entre $ [1,2] $.
+```{r,echo=T}
+n =  4
+D1<-eye(n, m = n)
+D2<-ones(n, m = n)
+D3<-zeros(n, m = n)
+A = matrix(c(-8.1, -7, 6.123, -2, -1, 4,
+-3, -1, 0, -1, -5, 0.6,
+-1, 0.33, 6, 1/2), nrow=4, byrow=TRUE)
+D = D1 * A # matriz de diagonales 
+Dinversa = solve(D)#inversa de la diagonal de A
+SumMatSup <-A
+matrioInf <-A
+SumMatSup[lower.tri(A,diag = TRUE)]<-0
+U <- SumMatSup # Matriz de diagonal speriror
+U = U
+matrioInf[upper.tri(A,diag = TRUE)]<-0
+L <- matrioInf #matriz de diagonal inferiror 
+L = L
+Tjacovi <-  Dinversa%*%(U+L)
+Tjacovi 
+w = 1
+Tsor  <- solve(D1 - w*solve(D)%*%L)%*%((1-w)*D1+(w*solve(D)%*%U))
+
+```
+
+### 2.
+Dada la siguiente matriz, utilice las funciones anteriores para descomponer la matriz $A=L+D+U$, recuerde que esta descomposición es la del metodo de (Jacobi). Verifique su respuesta
+
+```{r, echo=T}
+n = 4
+D1<-eye(n, m = n)
+D2<-ones(n, m = n)
+D3<-zeros(n, m = n)
+A = matrix(c(-8.1, -7/4, 6.1, -2, -1, 4,
+-3, -1, 0, -1, -5, 0.6,
+-1, 1/3, 6, 1/2), nrow=4, byrow=TRUE)
+cat('Matriz A\n')
+A
+D = D1 * A
+cat('Matriz D\n')
+D
+SumMatSup <-A
+matrioInf <-A
+SumMatSup[lower.tri(A,diag = TRUE)]<-0
+U <- SumMatSup # Matriz de diagonal superior 
+cat('Matriz U\n')
+U
+matrioInf[upper.tri(A,diag = TRUE)]<-0
+L <- matrioInf #matriz de diagonal inferior 
+cat('Matriz L\n')
+L
+```
+a. Adicionalmente, verifique si A es simétrica, si A es diagonalmente dominante, justifique su respuesta 
+
+Solucion: 
+
+- para verificar si una matriz es simetica se tiene que tomar la tranpuesta de la matriz original y el resultado tiene que ser el mismo a la matriz original, eneste caso para la matriz dada de 4x4 al transponerla no se va a dar la misma matriz original.
+- Para el caso de la matriz A, se tomo cada fila sin incluir el valor de la diagonal y se comparo que la suma del el valor absoluto de los componentes sea menor a el valor en la diagonal y asi por cada valor fila, el seultado dio que la matriz no es diagonalmente dominante.
+
+```{r}
+t = t(A)#transpuesta de la matriz
+if (identical(A, t)){#verificacion de simetria 
+  print("Matriz simetrica ")
+}else
+{
+  print('No es simetrica')
+}
+for (i in seq(1,4,by = 1)){#verificar si es daigonalmente dominante
+  sum = 0
+  for ( j in seq(1,4)){
+    sum = sum + abs(A[i,j])
+  }
+  sum  = sum - abs(A[i,i])
+  d = abs(A[i,i])
+  
+  if( d < sum ){
+    es = FALSE
+    print("No es diagoanalmente dominante ")
+    break
+    
+  }
+  es = TRUE
+}
+if(es)
+  print('Es diagonalmente dominante')
+```
+  
+  b. Utilice la función itersolve(A, b, tol , method = "Gauss-Seidel") y solucionar el sistema asociado a la matriz $A$ con:   $b=[1.45,3,5.12,-4]^{t}$ con una tolerancia de error de $1e^-8$ 
+  
+- La funcion **intersolve()** tiene la tarea de calcular una matriz $A$ con un vector $b$ según el tipo de metodo que se especifique, al evaluar la matriz dada en el ejercicio con su correspondiente vector y el metodo de Gauss-Seidel, se obtuvo una respueta la cual comparamos con la de Excel, al evaluar los resultados se pudo observar que eran totalmente diferentes, dando el Excel cifras pequeñas a diferencia del metodo de la libreria **pragma** que da unos valores muy grandes. Con este problema deicidimos buscar otra funcion en la libreria de Rlinsolve, la cual es **lsolve.gs()** la cual es una funcion que evalua directamente una matriz por el metodo de Gauss-Seidel. Al comparar se pudo obtener que el resultado del excel y la funcion de **Rlinsolve** era el mismo. Se cree que este problema que se obtinene con intersolve es dado porque la funcion no converge y es por eso que arroja resultados tan grandes,a diferencia de la otra fuuncion que posiblemente está adaptada para poder encontrar una solución cuando las matrices no convergen.
+
+```{r}
+b = matrix(c(1.45,3,5.12,-4),  nrow=4, byrow=TRUE)
+sol =  itersolve(A = A, b = b,tol = 1e-8, method = "Gauss-Seidel" )
+sol2 =lsolve.gs(A,b,reltol = 1e-8)
+sol$x
+sol$iter
+print('solucion dos')
+sol2$x
+sol2$iter
+```
+
+c. Genere las iteraciones del método de Jacobi, calcular error relativo para cada iteracion y comparar la solución con el método de Gauss-Seidel.
+
+-  Se realizo una funcion la cual realiza el calculo del metodo de jacovi, esto lo hace por medio de la evaluicion de la matriz $T = D^{-1}(L+U)$, detro de esta se valida si el radio expetral de la matriz T es menor a uno, adicionalmente se usa otra libreria la cual es *lsolve.jacovi()* para comparar la respuesta, dando un restultado igual, pero con la diferencia de el numero de iteraciones qu requiere para llegar a la respuesta, el cul es de 2 a 361.
+
+d. Encuentre la matriz de transición y el radio espectral 
+
+-   En el siguiente codigo se va a realizar el calculo de el metodo de jacovi, para esto se realizo las validaciones por medio del radio expectral, la matriz de trancision y la evalucion del error por medio de la $Norma_{\infty}$. La evaluacion del raio expectral se hace por medio de la obtencion del vector propio, para despues obtener el mayor valor absoluto dentro de este. Para la matriz de transicion solo se usa $D^{-1}(L+U)X^{(k)}. Los restultados  se observan en la ejecion del siguiente codigo. Como se pude observar el radio expectral es menor que uno, por lo cual indica que la matriz converge, es por esto que la funcion.
+
+```{r}
+jacobi<-  function(A,b, itera = 500){ 
+x = matrix(sample(0,length(b),replace = TRUE), byrow=TRUE) 
+SumMatSup <-A
+matrioInf <-A
+SumMatSup[lower.tri(A,diag = TRUE)]<-0
+U <- SumMatSup # Matriz de diagonal iferior
+U = U*-1  
+matrioInf[upper.tri(A,diag = TRUE)]<-0
+L <- matrioInf #matriz de diagonal superior 
+L = U*-1
+D1 =  eye(length(b))
+D = A*D1
+p1 = solve(A)%*%b
+
+Tr = solve(D)%*%(L+U) #matriz de trasicion 
+
+radioExp = max(abs(eig(Tr)))
+if(radioExp> 1){# radio expectral 
+  cat('Radio expectral mas grande que 1, no se pude calcular, el cual es: ',radioExp,'\n')
+}else{
+  cat("Radio expectral: ",radioExp,'\n')
+}
+
+e = 1000
+i = 0
+while(e > 1e-8){
+  xi = p1 + Tr%*%x
+  e = abs(norm(xi,'I') - norm(x,'I'))
+  x = xi
+  i = 1 + i 
+  cat("El error es: ",e,'\n')
+  cat("valor de x en iteracion ",i,'\n')
+  print(x)
+  if (i > itera)
+    break
+}
+print('Resultado de la funcion:')
+print(x)
+cat('Iteraciones :' ,i,'\n')
+
+}
+jacobi(A,b)
+j = lsolve.jacobi(A,b,reltol =1e-8 )
+print('Otra funcion')
+j$x
+print('iteraciones:')
+j$iter
+```
+
+
+
+
+
+### 3.
+Sea el sistema $AX=b$ dados en ejercicio,y  con tol= e^-8        
+ a. Implemente una función en R para que evalue las raíces del polinomio característico asociado a la matriz $A$    
+ 
+ - La siguiente función toma una matriz y lo que hace es que por medio del método **charpoly** se va a obtener el polinomio característico, lo cual después por medio de la ayuda de la función de **newton** poder evaluar la raíz del polinomio característico.
+ 
+```{r}
+raicesPoliCar <-function(A){
+  poli = charpoly(A)
+  f <- function(x){
+    r =  horner((poli),x)
+    return(r$y)
+  }
+  x =seq(-11,30)
+  x = newton(fun = f , x0 = 5,tol = 1e-8)
+  x
+}
+raicesPoliCar(A)
+
+```
+ 
+ b. Use el teorema de convergencia para determinar cuál método iterativo es más favorable.  
+ 
+  - **Solucion:**  Para le teorema de convergencia se tiene que evaluar dos condiciones, la primera es si una matriz $A$ es diagonalmente dominante, y la segunda condición  es que si esa misma matriz es simétrica definida positiva, en el punto *2.a* se pude verificar el resultado de la matriz con la cual se va a evaluar el teorema de convergencia, el cual arrojo que la matriz no es simétrica ni tampoco diagonalmente dominante, es por eso que según el método no hay un método más favorable para la evaluación de esta, pero esto no indica que no se puedan evaluar por algún método, solo indica que no hay uno que haga converger más rápido a la matriz.
+  
+ c. Evalue la matriz de transición para cada caso (método) y en el caso del método de relajación determine el valor óptimo de $\omega$ 
+```{r}
+
+Tjacovi = Dinversa%*%(U+L)
+cat('Jacovi\n')
+Tjacovi
+Tgauss  <- solve(D1 - solve(D)%*%L)%*%(solve(D)%*%U)
+cat('Gauss\n')
+Tgauss
+w = 1.2
+Tsor  <- solve(D1 - w*solve(D)%*%L)%*%((1-w)*D1+(w*solve(D)%*%U))
+cat('Sor\n')
+Tsor
+
+radioExp = max(abs(eig(Tsor)))
+w = 2/(1-(1-sqrt(radioExp^2)))
+cat('w optimo',w,'\n')
+```
+ 
+ d. Teniendo en cuenta lo anterior resolver el sistema  
+ 
+ **Solucion:** Para este caso como no se puede escoger un metodo en especial, entoces se va a escoger el metodo de jacovi con $b = [8,3,5,1]$, para esto se va  usar la funcion creada en el literal *2.d*.
+ 
+```{r}
+b =  matrix(data = c(8,3,5,1))
+jacobi(A,b)
+```
+ 
+ 
+ e Comparar con la solución por defecto       
+f. Evaluar el número de condición de la matriz A    
+```{r}
+co =  norm(A,'I')*norm(solve(A),'I')
+co
+```
+
+g. Evaluar el efecto en la solución si la entradad $a_{11}=4.01$ aplicar cambio y solucionar. Después, debe comparar con el valor condicón   
+
+```{r, echo=T}
+A = matrix(c(4, -1, -1, -1, -1, 4,
+-1, -1, -1, -1, 4, -1,
+-1, -1, -1, 4), nrow=4, byrow=TRUE)
+A
+b = c(1.11111, 5, 1.5,-2.33)
+b
+```
+
+### 4.
+a. Pruebe el siguiente algoritmo con una matriz $A_{6}$, modifiquelo para que $a_{ii}=0$ para todo $i$  
+
+- El algoritmo que se nos propone, lo que hace es que recibe una matriz y un factor, dependiendo de el factor lo que hara es cambiar todos los valores de la diagonal respectiva a ceros. La modificacion propuesta lo que hace es que evaluamos la matriz diagonal (con ayuda de la funcion eye), y para todos los casos, la diagonal de la matriz tambien sera una matriz de ceros.
+
+```{r, echo=T}
+
+tril1 <- function(M, k = 0) {
+if (k == 0) {
+M[upper.tri(M, diag = FALSE)] <- 0
+} else {
+M[col(M) >= row(M) + k + 1] <- 0
+}
+return(M)
+}
+
+
+###########
+
+##Funcion ya modificada
+trilmod <- function(M, k = 0) {
+if (k == 0) {
+
+M[upper.tri(M, diag = TRUE)] <- 0
+
+} else {
+  M[col(M) >= row(M) + k + 1] <- 0
+  n=6
+  D1<-eye(n, m = n)
+  tra=M-(M*D1)
+  M<-tra
+
+
+}
+return(M)
+}
+
+
+##Matriz de datos aleatoria de tamaño 6x6
+Ma<-matrix(sample(-100:100, 36), nrow = 6)
+print("Algoritmo original")
+tril1(Ma, k=0)
+print("Algoritmo modificado")
+trilmod(Ma, k=0)
+
+
+
+```
+
+
+### 5.
+Cree una función que cuente el número de multiplicaciones en el método directo de Gauss-Jordan, para resolver un sistema de $n$ ecuaciones y pruebelo para $n=5$
+
+
+
+```{r, echo=T}
+matrizJordan <- matrix(data = c(2,3,7,-2,5,6,8,9,4,2,3,7,-2,5,6,8,9,4,2,3,7,-2,5,6,8),nrow =5,ncol = 5, byrow = TRUE)
+Res <- c(3,5,8,2,4)
+a <- matrizJordan
+b <- Res
+
+Jordan <- function(a,b){
+x3 = length(b)
+cont = 0
+  for (e in 1:x3){
+      t = a[e,e]
+      b[e] <- b[e]/t
+      for (j in e:x3) {
+        a[e,j] <- a[e,j]/t
+      }
+      for (i in 1:x3){
+        if (i != e){
+          t = a[i,e]
+          b[i] <- b[i]-t*b[e]
+           for (j in e:x3) {
+             a[i,j] <- a[i,j]-t*a[e,j]
+      }
+    }
+  }
+}
+  x <- seq(NULL) 
+  for (i in 1:x3) {
+     x[i]<-b[i]
+  }
+  x
+  return(x)
+}
+
+ConteoGaus <- function(n){
+  c = 0 
+  x1 = length(n)
+  for (e in x1){
+    for (i in x1) {
+      if(i!=e){
+        for (j in e:x1) {
+          c = c + 1
+          
+        }
+      }
+    }
+  }
+  return(n)
+}
+print("Matriz de coeficientes: ")
+matrizJordan
+print("Vector de constantes: ")
+Res
+
+Res = Jordan(matrizJordan,Res)
+print("Soluciones al sistema de ecuaciones: ")
+Res
+Noperaciones = ConteoGaus(x3)
+print("El numero de operaciones es: ")
+Noperaciones
+
+```
+
+### 7.
+Dado el siguiente sistema: 
+
+$2x-z=1$   
+$\beta$$x+2y-z=2$     
+$-x+y+ \alpha$$z=1$  
+
+
+a. Encuentre el valor de $\alpha$ y $\beta$ para asegura la convergencia por el método de Jacobi y para Gauss Seidel. Sugerencia: utilice el teorema convergencia  
+```{r}
+
+b = 4
+a = 16
+M =  matrix(data = c(2,0,-1,b,2,-1,-1,1,a),nrow = 3, byrow =  TRUE)
+b =  matrix(data = c(1,2,3))
+SumMatSup <-M
+matrioInf <-M
+SumMatSup[lower.tri(M,diag = TRUE)]<-0
+L <- SumMatSup # Matriz de diagonal iferior
+L = L*-1  
+matrioInf[upper.tri(M,diag = TRUE)]<-0
+U <- matrioInf #matriz de diagonal superior 
+U = U*-1
+solve(A)
+T = solve(M)%*%(L+U)
+max(abs(eig(T)))
+itersolve(A = M, b, tol = 1e-8 , method = "Gauss-Seidel")
+
+
+```
+
+
+b. Genere una tabla que tenga 10 iteraciones, del método de Jacobi con vector inicial $x_{0}=[1,2,3]^t$ 
+
+- **Solucion:**Para realizar las iteraciones del sistema definido antes, se realzo por medio de la función de jacovi creada en el punto *2.d*, pero como la matriz no es de grna tamaño, el numero de iteraciones no llega a las 10 es pore eso que se imprimen solo 2.
+
+```{r}
+jacobi(M,b,itera = 10)
+```
+
+
+### 8. 
+Instalar el paquete Matrix y descomponga la matriz $A$ (del punto dos) de la forma $LU$ y la factorizarla como $A=QR$. Verifique su respuesta.  
+
+- **Solucion:** En el paquete Matrix nos encontramos con distintas funciones que nos permiten hacer descomposiciones de matrices. En primera instancia utilizamos la funcion tril que nos proporciona la matriz triangular inferior de la matriz original, y la funcion triu para obtener la triangular superior. Por otra parte, el paquete tambien nos proporciona una funcion para la factorizacion $A=QR$, la cual es qr.
+
+```{r, echo=T}
+A = matrix(c(-8.1, -7, 6.123, -2, -1, 4,
+-3, -1, 0, -1, -5, 0.6,
+-1, 0.33, 6, 1/2), nrow=4, byrow=TRUE)
+A
+
+I<-tril(A, k=0)
+I
+
+S<-triu(A, k=0)
+S
+
+Qr<-qr(A)
+Qr
+```
+
+### 9. 
+Realice varias pruebas que la matriz de transición por el método de Gauss-Seidel esta dada por $T=(-D^{-1}U)(I+LD^{-1})^{-1}$    
+
+- **Solucion:** En este punto, se busca ver que la matriz de transición de Gauss Seidel  $(D-L)^{-1}U$ tiene como equivalente la matriz $T=(-D^{-1}U)(I+LD^{-1})^{-1}$, al realizar diferentes pruebas como se ve en el siguiente código, se pude concluir que no corresponden a la misma matriz de transición, en un principio se intentó comprobar por medio de la matriz de transición de SOR $T = (I-wD^{-1}L)^{-1}[(1-w)I+wD^{-1}U]$ con $w =1$, ya que uno pude obtener la ecuación de Gauss Seidel a partir de la de SOR. haciendo la equivalencia se obtiene que $(I-D^{-1}L)^{-1}[D^{-1}U]\ne(-D^{-1}U)(I+LD^{-1})^{-1}$.
+
+```{r}
+gasucomp<- function(A,b){
+x = matrix(sample(0,length(b),replace = TRUE), byrow=TRUE) 
+SumMatSup <-A
+matrioInf <-A
+SumMatSup[lower.tri(A,diag = TRUE)]<-0
+U <- SumMatSup # Matriz de diagonal iferior
+U = U * -1
+matrioInf[upper.tri(A,diag = TRUE)]<-0
+L <- matrioInf #matriz de diagonal superior 
+L = L * -1
+I =  eye(length(b))
+Tg = solve(D-L)%*%U
+Cg = solve(D-L)%*%b
+
+Ti = (-1*solve(D)%*%U)%*%solve(I + L%*%solve(D))
+print(Tg)
+print(Ti) 
+}
+A =  matrix(sample(-100:100,16),byrow = TRUE,nrow = 4)
+b = matrix(sample(-100:100,4))
+gasucomp(A,b)
+
+```
+
+
+### Sistemas No lineales  
+### 10.
+a. Determinar numéricamente la intersección entre la circunferencia $x^2 + y^2 = 1$ y la recta $y = x$. Usamos una aproximación inicial $(1,1)$.   
+
+- **Solución:**Encontramos un paquete de R, denominado BB, que se encarga de resolver y optimizar sistemas de ecuaciones no lineales, y utilizamos una función (llamada BBsolve), que nos permite encontrar las intersecciones de las ecuaciones presentadas dada la aproximación lineal. Entonces se procedió a seguir los pasos que se ilustran en el HELP de la función para hacer el mejor uso de esta. Y primero es necesario pasar las ecuaciones a una función que sería el sistema de ecuaciones no lineales. Al final comprobamos el resultado de la función que nos arrojó con GeoGebra, obteniendo el mismo resultado.
+
+```{r}
+library(BB)
+
+re<-c(1,1)
+
+    
+sistem=function(x){
+  n<-length(x)
+  fun<-rep(NA, n)
+  fun[1] = (x[1]^2)+(x[2]^2)-1
+  fun[2] = (x[1])-(x[2])
+  fun
+}
+
+sol=BBsolve(re, sistem)
+sol$par
+```
+
+
+b Analizar y comentar el siguiente código   
+
+- **Solución:** Principalmente BBsolve, es una función que utiliza longitudes de paso Barzilai-Borwein para resolver sistemas de ecuaciones no lineales. Esta función recibe como parámetros un vector el cual da una estimación de las raíces del sistema de ecuaciones no  lineales, como segundo parámetro se recibe una función que dado un vector como argumento que lo transforma internamente (en cada una de sus posiciones) para al final retornar el vector modificado, todo esto se realiza en la función denominada "trigexp".Después regresa una lista de unos, los cuales indican los mejores parámetros para resolver el sistema  de ecuaciones.
+
+```{r, echo=T}
+library(BB)
+trigexp = function(x) {
+n = length(x)
+F = rep(NA, n)
+F[1] = 3*x[1]^2 + 2*x[2] - 5 + sin(x[1] - x[2]) * sin(x[1] + x[2])
+tn1 = 2:(n-1)
+F[tn1] = -x[tn1-1] * exp(x[tn1-1] - x[tn1]) + x[tn1] *
+( 4 + 3*x[tn1]^2) + 2 * x[tn1 + 1] + sin(x[tn1] -
+x[tn1 + 1]) * sin(x[tn1] + x[tn1 + 1]) - 8
+F[n] = -x[n-1] * exp(x[n-1] - x[n]) + 4*x[n] - 3
+F
+}
+n = 10000
+p0 = runif(n) # n initial random starting guesses
+sol = BBsolve(par=p0, fn=trigexp)
+sol$par
+```
+
