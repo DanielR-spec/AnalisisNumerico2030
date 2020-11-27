@@ -1,1 +1,8 @@
 
+En este investigacion, consideramos el impacto de los efectos de discretización
+sobre el comportamiento dinámico de la neurona monocompartimental
+modelo representado por ecuaciones simplificadas de Hodgkin-Huxley.
+
+Para su correcta evaluacion se realiza diferentes simulaciones en donde se varian los 
+parametros iniciales del modelo, finalmente mediante el mapeo logistico 
+se determica que comportamieno presenta el modelo en la condiciones presentadas. 
